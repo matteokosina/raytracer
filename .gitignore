@@ -1,0 +1,6 @@
+/build/
+/cmake-build-*/
+/raytracer.bmp
+/gmon.out
+*.gcda
+*.gcno
