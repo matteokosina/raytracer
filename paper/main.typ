@@ -1,16 +1,16 @@
 #import "template.typ": *
 
 #show: project.with(
-  title: "<Titel>",
-  work-type: "<Pflichtenheft / Übungsblatt / etc.>",
-  lecture: "<Vorlesung>",
-  professor: "<Prof. Dr. Joe Doe>",
+  title: "Projektbericht",
+  work-type: "",
+  lecture: "Labor Algorithmen / Optimierung von Programmen",
+  professor: "Prof. Dr. rer. nat. Christian Pape ",
   authors: (
-    (name: "Author 0"),
-    (name: "Author 1"),
-    (name: "Author 3"),
+    (name: "Matteo Kosina"),
   ),
 )
 
 #include "chapters/00-intro.typ"
+#pagebreak()
+#bibliography("references.bib", title: [Literatur und Bildquellen], style: "ieee")
 

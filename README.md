@@ -35,8 +35,9 @@ colors, specular `Ks`, shininess `Ns`, opacity `d`, and transparency `Tr` are
 read from referenced MTL files. OBJ vertex normals are interpolated across
 triangle surfaces for smooth shading. Specular materials trace reflected rays,
 and transparent materials trace refracted rays using `Ni` and Fresnel weighting.
-The glass model is a compact Whitted-style approximation, not a full physically
-based renderer. The current renderer is brute force;
+Direct illumination includes hard shadow rays, with transparent surfaces
+attenuating shadows. The glass model is a compact Whitted-style approximation,
+not a full physically based renderer. The current renderer is brute force;
 large meshes at full resolution are intentionally a slow baseline until the
 k-d tree phase is implemented.
 

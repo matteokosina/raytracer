@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <cstdlib>
+#include <iomanip>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -55,7 +56,14 @@ int main(int argc, char** argv) {
         const Camera camera(world.bounds_min(),world.bounds_max(),static_cast<double>(options.width)/options.height);
         RenderStats stats;
         const auto pixels = Renderer::render(world,camera,options.width,options.height,&stats,
-                                             options.intersection_algorithm);
+            options.intersection_algorithm,[](int percent) {
+                constexpr int bar_width = 30;
+                const int completed = bar_width*percent/100;
+                std::cerr << "\rRendering [" << std::string(completed,'#')
+                          << std::string(bar_width-completed,'-') << "] "
+                          << std::setw(3) << percent << '%' << std::flush;
+                if (percent == 100) std::cerr << '\n';
+            });
         BmpWriter::write(options.output,options.width,options.height,pixels);
         const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();
         std::cout << "Loaded " << world.triangles().size() << " triangles\n"

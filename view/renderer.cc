@@ -5,7 +5,7 @@
 
 namespace {
 constexpr int kMaxReflectionDepth = 4;
-constexpr double kRayOffset = 1e-5;
+constexpr double kRayOffset = 1e-4;
 
 Vector3 background(const Ray& ray) {
     const double blend = 0.5*(ray.direction.normalized().y+1.0);
@@ -24,6 +24,23 @@ double schlick_fresnel(double cosine, double refractive_index) {
     const double ratio = (refractive_index-1.0)/(refractive_index+1.0);
     const double f0 = ratio*ratio;
     return f0+(1.0-f0)*std::pow(1.0-std::clamp(cosine,0.0,1.0),5.0);
+}
+
+Vector3 light_visibility(const World& world, const Vector3& point,
+                        const Vector3& geometric_normal, const Vector3& light,
+                        TriangleIntersectionAlgorithm algorithm, RenderStats* stats) {
+    const Ray shadow_ray{offset_origin(point,geometric_normal,light),light};
+    Vector3 visibility{1.0,1.0,1.0};
+    double t_min = 1e-6;
+    for (int layer=0;layer<16;++layer) {
+        Hit blocker;
+        if (!world.intersect(shadow_ray,t_min,1e30,blocker,stats,algorithm)) break;
+        const double opacity = std::clamp(world.triangles()[blocker.triangle_index].material.opacity,0.0,1.0);
+        visibility = visibility*(1.0-opacity);
+        if (visibility.x<0.01 && visibility.y<0.01 && visibility.z<0.01) return {};
+        t_min = blocker.t+kRayOffset;
+    }
+    return visibility;
 }
 
 bool refract(const Vector3& incoming, const Vector3& normal, double eta,
@@ -52,13 +69,15 @@ Vector3 trace(const World& world, const Ray& ray, int depth, RenderStats* stats,
     if (normal.dot(ray.direction)>0.0) normal = -normal;
 
     const Vector3 light = Vector3{-0.5,0.8,0.6}.normalized();
+    const Vector3 visibility = light_visibility(world,point,geometric_normal,light,algorithm,stats);
     const Vector3 view = (-ray.direction).normalized();
     const double diffuse = std::max(0.0,normal.dot(light));
     const Vector3 half_vector = (light+view).normalized();
     const double highlight = std::pow(std::max(0.0,normal.dot(half_vector)),
                                       std::max(1.0,material.shininess));
-    const Vector3 local_color = material.diffuse*(0.12+0.86*diffuse)
-                              + material.specular*highlight;
+    const Vector3 local_color = material.diffuse*0.12
+                              + (material.diffuse*(0.86*diffuse)).hadamard(visibility)
+                              + (material.specular*highlight).hadamard(visibility);
 
     const double opacity = std::clamp(material.opacity,0.0,1.0);
     const double specular_level = std::clamp(std::max({material.specular.x,
@@ -99,13 +118,22 @@ Vector3 trace(const World& world, const Ray& ray, int depth, RenderStats* stats,
 
 std::vector<Vector3> Renderer::render(const World& world, const Camera& camera,
                                       int width, int height, RenderStats* stats,
-                                      TriangleIntersectionAlgorithm algorithm) {
+                                      TriangleIntersectionAlgorithm algorithm,
+                                      ProgressCallback progress) {
     std::vector<Vector3> pixels(static_cast<std::size_t>(width)*height);
-    for (int y=0;y<height;++y) for (int x=0;x<width;++x) {
-        if (stats) ++stats->primary_rays;
-        const double u = (x+0.5)/width;
-        const double v = 1.0-(y+0.5)/height;
-        pixels[static_cast<std::size_t>(y)*width+x] = trace(world,camera.ray(u,v),0,stats,algorithm);
+    int last_percent = -1;
+    for (int y=0;y<height;++y) {
+        for (int x=0;x<width;++x) {
+            if (stats) ++stats->primary_rays;
+            const double u = (x+0.5)/width;
+            const double v = 1.0-(y+0.5)/height;
+            pixels[static_cast<std::size_t>(y)*width+x] = trace(world,camera.ray(u,v),0,stats,algorithm);
+        }
+        const int percent = (100*(y+1))/height;
+        if (progress && percent != last_percent) {
+            progress(percent);
+            last_percent = percent;
+        }
     }
     return pixels;
 }
