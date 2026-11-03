@@ -161,7 +161,13 @@ vier Dreieck-/Trefferpunkte auf 2D-Koordinaten. Möller–Trumbore hat bis zum
 u-Test eine Algorithmusauswahl, einen Determinantentest und zwei
 Kurzschlussvergleiche für die u-Grenzen.
 
-== CPU-Profiling mit Google Perftools
+= Build- & Profiling-Infrastruktur
+Aufgrund von Kompatibilitätsbeschränkungen klassischer GCC-Profiling-Tools
+(gprof) auf der macOS-Plattform wurden die dynamischen Laufzeit- und
+Hotspot-Analysen mittels Google Performance Tools (gperftools / pprof)
+durchgeführt.
+
+=== CPU-Profiling mit Google Perftools
 Das Skript `scripts/profile_task1_gperftools.sh` baut mit
 `-DENABLE_GPERFTOOLS_PROFILING=ON`, rendert beide Verfahren und analysiert die
 CPU-Profile mit `pprof`. Die folgende Tabelle zeigt die Wandzeit aus dem

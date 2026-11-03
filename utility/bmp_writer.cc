@@ -28,6 +28,7 @@ void BmpWriter::write(const std::filesystem::path& path, int width, int height,
     out.put('B'); out.put('M'); put_u32(out,54+image_size); put_u16(out,0); put_u16(out,0); put_u32(out,54);
     put_u32(out,40); put_u32(out,width); put_u32(out,height); put_u16(out,1); put_u16(out,24);
     put_u32(out,0); put_u32(out,image_size); put_u32(out,2835); put_u32(out,2835); put_u32(out,0); put_u32(out,0);
+    // BMP speichert Zeilen von unten nach oben und Farbkanäle in BGR-Reihenfolge.
     for (int y=height-1;y>=0;--y) {
         for (int x=0;x<width;++x) {
             const auto& color = pixels[static_cast<std::size_t>(y)*width+x];

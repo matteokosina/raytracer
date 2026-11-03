@@ -9,6 +9,7 @@ bool World::intersect(const Ray& ray, double t_min, double t_max, Hit& hit, Rend
                       TriangleIntersectionAlgorithm algorithm) const {
     bool found = false;
     double closest = t_max;
+    // Brute Force: Der obere Grenzwert wird mit jedem Treffer enger.
     for (std::size_t i = 0; i < triangles_.size(); ++i) {
         if (stats) ++stats->triangle_tests;
         double t = 0.0, u = 0.0, v = 0.0;

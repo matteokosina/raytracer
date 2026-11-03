@@ -51,7 +51,10 @@ Options parse_options(int argc, char** argv) {
 int main(int argc, char** argv) {
     try {
         const Options options = parse_options(argc,argv);
+        // Flags ändern Algorithmus und Ausgabe, nicht den gemeinsamen Renderablauf.
+        // Die Messung umfasst Laden, Rendering und Schreiben der BMP-Datei.
         const auto start = std::chrono::steady_clock::now();
+        // Die OBJ-Szene liefert Geometrie, Materialien und die Kameragrenzen.
         const World world = ObjLoader::load(options.input);
         const Camera camera(world.bounds_min(),world.bounds_max(),static_cast<double>(options.width)/options.height);
         RenderStats stats;
@@ -64,6 +67,7 @@ int main(int argc, char** argv) {
                           << std::setw(3) << percent << '%' << std::flush;
                 if (percent == 100) std::cerr << '\n';
             });
+        // Erst nach vollständigem Rendering wird der Pixelpuffer als BMP geschrieben.
         BmpWriter::write(options.output,options.width,options.height,pixels);
         const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();
         std::cout << "Loaded " << world.triangles().size() << " triangles\n"

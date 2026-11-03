@@ -3,6 +3,7 @@
 #include <algorithm>
 
 Camera::Camera(const Vector3& bounds_min, const Vector3& bounds_max, double aspect_ratio) {
+    // Die Szenengrenzen bestimmen Mittelpunkt und Abstand der Kamera.
     const Vector3 center = (bounds_min+bounds_max)*0.5;
     const Vector3 extent = bounds_max-bounds_min;
     const double radius = std::max({extent.x,extent.y,extent.z,1e-3})*0.5;
@@ -17,4 +18,7 @@ Camera::Camera(const Vector3& bounds_min, const Vector3& bounds_max, double aspe
     lower_left_ = origin_ + forward*(radius*2.5) - horizontal_*0.5 - vertical_*0.56;
 }
 
-Ray Camera::ray(double u, double v) const { return {origin_, lower_left_+horizontal_*u+vertical_*v-origin_}; }
+Ray Camera::ray(double u, double v) const {
+    // u und v liegen auf der Bildebene; die Richtung zeigt vom Ursprung dorthin.
+    return {origin_, lower_left_+horizontal_*u+vertical_*v-origin_};
+}

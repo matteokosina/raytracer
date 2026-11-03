@@ -29,6 +29,7 @@ double schlick_fresnel(double cosine, double refractive_index) {
 Vector3 light_visibility(const World& world, const Vector3& point,
                         const Vector3& geometric_normal, const Vector3& light,
                         TriangleIntersectionAlgorithm algorithm, RenderStats* stats) {
+    // Transparente Hindernisse werden nacheinander entlang des Schattenstrahls gesammelt.
     const Ray shadow_ray{offset_origin(point,geometric_normal,light),light};
     Vector3 visibility{1.0,1.0,1.0};
     double t_min = 1e-6;
@@ -56,6 +57,7 @@ bool refract(const Vector3& incoming, const Vector3& normal, double eta,
 Vector3 trace(const World& world, const Ray& ray, int depth, RenderStats* stats,
               TriangleIntersectionAlgorithm algorithm) {
     Hit hit;
+    // Ein Strahl ohne Treffer trägt nur die Hintergrundfarbe zum Pixel bei.
     if (!world.intersect(ray,1e-6,1e30,hit,stats,algorithm)) return background(ray);
 
     const Triangle& triangle = world.triangles()[hit.triangle_index];
@@ -79,6 +81,7 @@ Vector3 trace(const World& world, const Ray& ray, int depth, RenderStats* stats,
                               + (material.diffuse*(0.86*diffuse)).hadamard(visibility)
                               + (material.specular*highlight).hadamard(visibility);
 
+    // Fresnel-Werte teilen die Materialfarbe auf lokale Farbe, Reflexion und Brechung auf.
     const double opacity = std::clamp(material.opacity,0.0,1.0);
     const double specular_level = std::clamp(std::max({material.specular.x,
         material.specular.y,material.specular.z}),0.0,0.95);
@@ -91,6 +94,7 @@ Vector3 trace(const World& world, const Ray& ray, int depth, RenderStats* stats,
     double transmission_weight = (1.0-opacity)*(1.0-reflection_weight);
     const double local_weight = opacity*(1.0-reflection_weight);
 
+    // Begrenze Reflexion und Brechung, damit die Rekursion endlich bleibt.
     if (depth >= kMaxReflectionDepth ||
         (reflection_weight < 0.001 && transmission_weight < 0.001))
         return local_color*local_weight + background(ray)*
@@ -99,6 +103,7 @@ Vector3 trace(const World& world, const Ray& ray, int depth, RenderStats* stats,
     const Vector3 incoming = ray.direction.normalized();
     const Vector3 reflected = (incoming-normal*(2.0*incoming.dot(normal))).normalized();
     const Ray reflection_ray{offset_origin(point,geometric_normal,reflected),reflected};
+    // Jeder Folgestrahl fragt dieselbe Szene mit demselben Schnittverfahren ab.
     const Vector3 reflected_color = trace(world,reflection_ray,depth+1,stats,algorithm);
     Vector3 color = local_color*local_weight + reflected_color*reflection_weight;
 
@@ -122,6 +127,7 @@ std::vector<Vector3> Renderer::render(const World& world, const Camera& camera,
                                       ProgressCallback progress) {
     std::vector<Vector3> pixels(static_cast<std::size_t>(width)*height);
     int last_percent = -1;
+    // Pro Pixel wird ein Strahl durch die Pixelmitte verfolgt.
     for (int y=0;y<height;++y) {
         for (int x=0;x<width;++x) {
             if (stats) ++stats->primary_rays;

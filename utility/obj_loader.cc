@@ -17,6 +17,7 @@ struct FaceVertex {
 
 int resolve_index(const std::string& token, std::size_t count) {
     const int raw = std::stoi(token);
+    // OBJ erlaubt positive Indizes ab 1 und negative Indizes relativ zum Ende.
     const long index = raw > 0 ? raw-1 : static_cast<long>(count)+raw;
     if (raw == 0 || index < 0 || static_cast<std::size_t>(index) >= count)
         throw std::runtime_error("OBJ face references an invalid vertex index");
@@ -96,6 +97,7 @@ World ObjLoader::load(const std::filesystem::path& path) {
             if (!(row >> n.x >> n.y >> n.z)) throw std::runtime_error("Invalid normal at OBJ line " + std::to_string(line_number));
             normals.push_back(n.normalized());
         } else if (kind == "f") {
+            // Polygonflächen werden als Dreieckfächer in Primitive zerlegt.
             std::vector<FaceVertex> face;
             std::string token;
             while (row >> token) {
@@ -104,6 +106,7 @@ World ObjLoader::load(const std::filesystem::path& path) {
             }
             if (face.size() < 3) throw std::runtime_error("Face has fewer than three vertices at OBJ line " + std::to_string(line_number));
             for (std::size_t i = 1; i+1 < face.size(); ++i) {
+                // Eckpunkt 0 bleibt fest; die übrigen Kanten bilden die Fächer-Dreiecke.
                 const FaceVertex corners[] = {face[0],face[i],face[i+1]};
                 Triangle triangle;
                 triangle.a = vertices[corners[0].vertex];
