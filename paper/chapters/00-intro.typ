@@ -33,6 +33,7 @@ Die Trennung erleichtert den Vergleich der Schnittalgorithmen: Sie lassen
 sich über die Kommandozeile via Flags auswählen, während Kamera, Szenenverwaltung
 und Bildausgabe gleich bleiben. Geometrie, Beleuchtung und Dateiverarbeitung
 sind dadurch als eigene Verantwortungsbereiche erkennbar.
+@fig:class-diagram zeigt ein vereinfachtes Klassendiagramm des Projekts zur besseren Darstellung. Eine vollständige und ungekürzte Version des Diagramms ist im Anhang (@fig:class-diagram-full) zu finden.
 #figure(
   image("../assets/class-diagram.svg", width: 100%),
   caption: [Klassendiagramm der zentralen Klassen. Rauten markieren enthaltene Objekte; gestrichelte Pfeile zeigen Nutzungsbeziehungen.],
@@ -40,7 +41,7 @@ sind dadurch als eigene Verantwortungsbereiche erkennbar.
 
 
 Für die erste Aufgabe schauen wir uns hierzu zunächst zwei verschiedene Schnittpunktalgorithmen an. Diese sind der Badouel Algorithmus der als Referenzalgorithmus dient und der Möller-Trumbore Algorithmus. Standardmäßig nutzt der hier gebaute Raytracer den Badouel Algorithmus um Schnittpunkte zwischen der Dreiecken und den Strahlen zu berechnen, um den Möller-Trumbore Algorithmus zu nutzen muss die `--moeller` CLI-Flag mitgegeben werden.
-Als Testszene dient die Teapot-Szene die als _.obj_ und _.mtl_ Datei bereitgestellt wurden. @fig:rendered0 und @fig:rendered1 zeigen die vom Raytracer gerenderte Szene mittels Badouel und Möller-Trumbore Algorithmus in einer Auflösung von 3840px x 2160px. Wie erwartet zeigen Sie das gleiche Bild, da ausschlieplich die Berechnung des Schnittpunktes jedoch nicht das Ergebnis unterschiedlich sein sollte.
+Als Testszene dient die Teapot-Szene die als _.obj_ und _.mtl_ Datei bereitgestellt wurden. @fig:rendered0 und @fig:rendered1 zeigen die vom Raytracer gerenderte Szene mittels Badouel und Möller-Trumbore Algorithmus in einer Auflösung von 3840px x 2160px.
 #grid(
   columns: (1fr, 1fr),
   column-gutter: 10pt,
@@ -81,6 +82,13 @@ bei drei Auflösungen ausgeführt. Die Tabelle zeigt die gemessene Laufzeit und
 das Verhältnis Badouel/Möller–Trumbore. Die Pixelzahl vervierfacht sich bei
 jeder Verdopplung von Breite und Höhe; entsprechend wachsen die Laufzeiten
 nahezu um den Faktor vier.
+
+Der *Speed-up* gibt an, um welchen Faktor Möller–Trumbore gegenüber der
+Badouel-Baseline schneller ist. Er wird als Quotient der Laufzeiten berechnet:
+$ "Speed-up" = frac(t_("Badouel"), t_("Möller–Trumbore")) $
+Ein Wert von 2 bedeutet, dass Möller–Trumbore halb so lange benötigt; ein Wert
+größer als 1 steht für eine kürzere Laufzeit, ein Wert kleiner als 1 für eine
+längere Laufzeit als bei der Baseline.
 
 #table(
   columns: (1fr, 1fr, 1.2fr, 0.9fr, 1.5fr),
@@ -129,64 +137,3 @@ Innenbedingung $v >= 0$ und $u + v <= 1$. Die Strahlposition folgt aus
 $t = (e_2 dot Q) / det$ und wird gegen das vorgegebene Intervall geprüft.
 Der Test ist zweiseitig: Durch den Betrag des Determinanten wird keine
 Dreiecksorientierung als Rückseiten-Culling verwendet.
-
-== Mikrooperationen bis zur ersten u-Prüfung
-Die folgende Zählung verwendet die Operationen im aktuellen C++-Quelltext und
-endet jeweils unmittelbar nach der Berechnung von $u$, direkt vor dem Test
-$0 <= u <= 1$. Vektoradditionen, Subtraktionen und Vergleiche sind nicht als
-Multiplikationen oder Divisionen gezählt. Es wird keine konstante Division
-angenommen.
-
-Bei Badouel entstehen 6 Multiplikationen für $n = e_1 times e_2$, weitere 3
-für den Degeneriertheitstest $n dot n$, je 3 für $n dot D$ und
-$n dot (A - O)$, 3 für den Trefferpunkt $O + t D$, 2 für die projizierte
-Dreiecksfläche und 2 für den Zähler von $u$. Das ergibt 22 Multiplikationen.
-Die Divisionen zur Berechnung von $t$ und $u$ ergeben zusammen 2. Die oft
-angegebene Zahl 19 lässt die 3 Multiplikationen für $n dot n$ aus; dieser
-Degeneriertheitstest ist aber im aktuellen Code enthalten.
-
-Bei Möller–Trumbore benötigt $P = D times e_2$ 6 Multiplikationen,
-$e_1 dot P$ und $T dot P$ je 3 sowie die Multiplikation mit $1 / det$ eine
-weitere. Damit sind es 13 Multiplikationen und eine Division zur Bildung des
-Reziproken $1 / det$.
-
-#table(
-  columns: (1.4fr, 1.3fr, 1.2fr, 2.6fr),
-  align: (left, right, right, left),
-  [*Verfahren*], [*Multiplikationen [Anzahl]*], [*Divisionen [Anzahl]*], [*Bedingte Prüfungen bis einschließlich u-Test [Anzahl]*],
-  [Badouel], [22], [2], [14–18; abhängig von Projektionsachse],
-  [Möller–Trumbore], [13], [1], [4 im C++-Quelltext],
-)
-
-Die Zählung umfasst 8 Prüfungen außerhalb der
-Achsenwahl, 2 Vergleiche bei der Achsenwahl sowie 4–8 Tests beim Abbilden der
-vier Dreieck-/Trefferpunkte auf 2D-Koordinaten. Möller–Trumbore hat bis zum
-u-Test eine Algorithmusauswahl, einen Determinantentest und zwei
-Kurzschlussvergleiche für die u-Grenzen.
-
-= Build- & Profiling-Infrastruktur
-Aufgrund von Kompatibilitätsbeschränkungen klassischer GCC-Profiling-Tools
-(gprof) auf der macOS-Plattform wurden die dynamischen Laufzeit- und
-Hotspot-Analysen mittels Google Performance Tools (gperftools / pprof)
-durchgeführt.
-
-=== CPU-Profiling mit Google Perftools
-Das Skript `scripts/profile_task1_gperftools.sh` baut mit
-`-DENABLE_GPERFTOOLS_PROFILING=ON`, rendert beide Verfahren und analysiert die
-CPU-Profile mit `pprof`. Die folgende Tabelle zeigt die Wandzeit aus dem
-Raytracer-Log sowie die von `pprof` aus Stichproben geschätzte CPU-Zeit. Die
-mittlere Zeit pro Test ist die `Triangle::intersect`-Eigenzeit geteilt durch
-die vom Renderer gezählte Anzahl der Dreieckstests; sie ist daher ebenfalls
-eine Stichprobenschätzung, keine gemessene Einzelaufrufdauer.
-
-#table(
-  columns: (1.2fr, 1fr, 1.2fr, 1.2fr, 0.9fr, 1fr),
-  align: (left, right, right, right, right, right),
-  [*Verfahren*], [*Wandzeit [ms]*], [*Profilzeit [s]*], [*Triangle-Zeit [s]*], [*Anteil [%]*], [*Ø je Test [ns]*],
-  [Badouel], [116764], [93.07], [74.60], [80.15], [7.733],
-  [Möller–Trumbore], [70305], [56.85], [46.71], [82.16], [4.842],
-)
-
-Die mittlere Testzeit ist eine Stichprobenschätzung: Sie teilt die
-`Triangle::intersect`-Eigenzeit durch die vom Renderer gezählten Tests. Der
-Profiler liefert damit keine Einzelaufrufmessung.
