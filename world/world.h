@@ -21,8 +21,8 @@ public:
     void add_triangle(const Triangle& triangle);
     /** Returns true and fills hit with the closest triangle in the interval. */
     [[nodiscard]] bool intersect(const Ray& ray, double t_min, double t_max,
-                                 Hit& hit, RenderStats* stats = nullptr,
-                                 TriangleIntersectionAlgorithm algorithm = TriangleIntersectionAlgorithm::Badouel) const;
+                                 Hit& hit, TriangleIntersectFn intersect_fn = &Triangle::intersect_badouel,
+                                 RenderStats* stats = nullptr) const;
     /** Provides read-only access to all scene triangles. */
     [[nodiscard]] const std::vector<Triangle>& triangles() const { return triangles_; }
     /** Returns the component-wise minimum scene coordinate. */

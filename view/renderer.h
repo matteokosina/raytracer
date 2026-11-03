@@ -17,12 +17,12 @@ public:
      * @param width Image width in pixels.
      * @param height Image height in pixels.
      * @param stats Optional render counters; may be null.
-     * @param algorithm Triangle intersection implementation used for all rays.
+     * @param intersect_fn Triangle intersection implementation selected before rendering.
      * @param progress Optional callback called when the completed-row percentage changes.
      * @return Row-major linear RGB pixels in [0,1].
      */
     [[nodiscard]] static std::vector<Vector3> render(const World& world, const Camera& camera,
                                                       int width, int height, RenderStats* stats = nullptr,
-                                                      TriangleIntersectionAlgorithm algorithm = TriangleIntersectionAlgorithm::Badouel,
+                                                      TriangleIntersectFn intersect_fn = &Triangle::intersect_badouel,
                                                       ProgressCallback progress = {});
 };

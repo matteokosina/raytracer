@@ -1,0 +1,72 @@
+@startuml
+title Vollständiges Klassendiagramm — CLI und Ein-/Ausgabe
+
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam nodesep 20
+skinparam ranksep 26
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 15
+
+package "CLI · raytracer.cc" {
+  class Options <<intern>> {
+    +input: std::string = "teapot_n_glass.obj"
+    +output: std::string = "raytracer.bmp"
+    +width: int = 1280
+    +height: int = 720
+    +intersection_algorithm: TriangleIntersectionAlgorithm = Badouel
+  }
+  note right of Options
+    Freie Funktionen:
+    parse_dimension(value, flag): int
+    parse_options(argc, argv): Options
+    main(argc, argv): int
+  end note
+}
+
+package "utility" {
+  class ObjLoader {
+    +{static} load(path: std::filesystem::path): World
+  }
+
+  class FaceVertex <<intern>> {
+    +vertex: int = -1
+    +normal: int = -1
+  }
+
+  class BmpWriter {
+    +{static} write(path, width, height, pixels): void
+  }
+}
+
+note bottom of ObjLoader
+  Interne Daten und Helfer:
+  Materials = std::map<std::string, Material>
+  resolve_index, face_vertex, load_materials
+end note
+
+note bottom of BmpWriter
+  Interne Hilfsfunktionen:
+  put_u16, put_u32, channel
+end note
+
+note right of FaceVertex
+  OBJ-Ecke mit Positionsindex
+  und optionalem Normalenindex.
+end note
+
+note top of Options
+  Ablauf in main():
+  Optionen parsen → OBJ/MTL laden →
+  Kamera und Renderer ausführen → BMP schreiben.
+end note
+
+ObjLoader ..> FaceVertex : zerlegt OBJ-Flächen
+Options ..> ObjLoader : Eingabepfad
+Options ..> BmpWriter : Ausgabepfad
+
+@enduml

@@ -33,6 +33,12 @@ struct Triangle {
     [[nodiscard]] bool intersect(const Ray& ray, double t_min, double t_max,
                                  double& t_out, double& u_out, double& v_out,
                                  TriangleIntersectionAlgorithm algorithm = TriangleIntersectionAlgorithm::Badouel) const;
+    /** Badouel implementation, callable directly by the traversal loop. */
+    [[nodiscard]] bool intersect_badouel(const Ray& ray, double t_min, double t_max,
+                                         double& t_out, double& u_out, double& v_out) const;
+    /** Möller–Trumbore implementation, callable directly by the traversal loop. */
+    [[nodiscard]] bool intersect_moeller(const Ray& ray, double t_min, double t_max,
+                                         double& t_out, double& u_out, double& v_out) const;
     /** Returns the unit geometric normal; degenerate triangles return zero. */
     [[nodiscard]] Vector3 normal() const { return (b-a).cross(c-a).normalized(); }
     /** Interpolates OBJ vertex normals with barycentric weights and normalizes the result. */
@@ -41,3 +47,7 @@ struct Triangle {
         return (normal_a*(1.0-u-v)+normal_b*u+normal_c*v).normalized();
     }
 };
+
+/** Member-function dispatch selected once before rendering begins. */
+using TriangleIntersectFn = bool (Triangle::*)(const Ray&, double, double,
+                                                double&, double&, double&) const;

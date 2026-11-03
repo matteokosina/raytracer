@@ -1,36 +1,33 @@
 @startuml
-title C++20 Raytracer — Klassendiagramm
+title C++20 Raytracer — zentrale Klassen und Renderablauf
+
 left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
 skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam nodesep 24
+skinparam ranksep 30
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 12
 
 package "math" {
   class Vector3 <<struct>> {
-    +x: double = 0.0
-    +y: double = 0.0
-    +z: double = 0.0
-    +length_squared(): double
-    +length(): double
+    +x: double
+    +y: double
+    +z: double
     +normalized(): Vector3
-    +dot(rhs: const Vector3&): double
-    +cross(rhs: const Vector3&): Vector3
-    +operator+(rhs: const Vector3&): Vector3
-    +operator-(rhs: const Vector3&): Vector3
-    +operator-(): Vector3
-    +operator*(s: double): Vector3
-    +operator/(s: double): Vector3
-    +hadamard(rhs: const Vector3&): Vector3
+    +dot(rhs): double
+    +cross(rhs): Vector3
   }
-  note right of Vector3
-    Freie Funktion:
-    operator*(s: double, v: const Vector3&): Vector3
-  end note
 }
 
 package "geometry" {
   class Ray <<struct>> {
     +origin: Vector3
     +direction: Vector3
-    +at(t: double): Vector3
+    +at(t): Vector3
   }
 
   enum TriangleIntersectionAlgorithm {
@@ -39,123 +36,76 @@ package "geometry" {
   }
 
   class Triangle <<struct>> {
-    +a: Vector3
-    +b: Vector3
-    +c: Vector3
+    +a, b, c: Vector3
     +material: Material
-    +normal_a: Vector3
-    +normal_b: Vector3
-    +normal_c: Vector3
-    +has_vertex_normals: bool = false
-    +intersect(ray: const Ray&, t_min: double, t_max: double, t_out: double&, u_out: double&, v_out: double&, algorithm: TriangleIntersectionAlgorithm = Badouel): bool
+    +normal_a, normal_b, normal_c: Vector3
+    +has_vertex_normals: bool
+    +intersect(ray, interval, algorithm): bool
     +normal(): Vector3
-    +shading_normal(u: double, v: double): Vector3
+    +shading_normal(u, v): Vector3
   }
 }
 
 package "world" {
   class Material <<struct>> {
-    +diffuse: Vector3 = (0.8, 0.8, 0.8)
-    +specular: Vector3 = (0.0, 0.0, 0.0)
-    +shininess: double = 16.0
-    +opacity: double = 1.0
-    +refractive_index: double = 1.5
+    +diffuse, specular: Vector3
+    +shininess: double
+    +opacity: double
+    +refractive_index: double
   }
 
   class Hit <<struct>> {
-    +t: double = 0.0
-    +u: double = 0.0
-    +v: double = 0.0
-    +triangle_index: std::size_t = 0
+    +t, u, v: double
+    +triangle_index: size_t
   }
 
   class World {
-    -triangles_: std::vector<Triangle>
-    +add_triangle(triangle: const Triangle&): void
-    +intersect(ray: const Ray&, t_min: double, t_max: double, hit: Hit&, stats: RenderStats* = nullptr, algorithm: TriangleIntersectionAlgorithm = Badouel): bool
-    +triangles(): const std::vector<Triangle>&
+    -triangles: vector<Triangle>
+    +add_triangle(triangle): void
+    +intersect(ray, interval, hit, stats, algorithm): bool
     +bounds_min(): Vector3
     +bounds_max(): Vector3
   }
 }
 
-package "utility" {
-  class RenderStats <<struct>> {
-    +primary_rays: std::atomic<std::uint64_t> = 0
-    +triangle_tests: std::atomic<std::uint64_t> = 0
-    +aabb_tests: std::atomic<std::uint64_t> = 0
-    +reset(): void
-  }
-
-  class ObjLoader {
-    +{static} load(path: const std::filesystem::path&): World
-  }
-
-  class BmpWriter {
-    +{static} write(path: const std::filesystem::path&, width: int, height: int, pixels: const std::vector<Vector3>&): void
-  }
-
-  class FaceVertex <<struct, internal>> {
-    +vertex: int = -1
-    +normal: int = -1
-  }
-}
-
 package "view" {
   class Camera {
-    -origin_: Vector3
-    -lower_left_: Vector3
-    -horizontal_: Vector3
-    -vertical_: Vector3
-    +Camera(bounds_min: const Vector3&, bounds_max: const Vector3&, aspect_ratio: double)
-    +ray(u: double, v: double): Ray
+    -origin: Vector3
+    -lower_left: Vector3
+    -horizontal, vertical: Vector3
+    +Camera(scene_bounds, aspect_ratio)
+    +ray(u, v): Ray
   }
 
   class Renderer {
-    +{static} render(world: const World&, camera: const Camera&, width: int, height: int, stats: RenderStats*, algorithm: TriangleIntersectionAlgorithm, progress: ProgressCallback): std::vector<Vector3>
+    +render(world, camera, size, stats, algorithm): vector<Vector3>
   }
-  note right of Renderer
-    ProgressCallback = std::function<void(int)>
-    Defaults: stats = nullptr, algorithm = Badouel, progress = {}
-  end note
 }
 
-package "CLI (raytracer.cc)" {
-  class Options <<struct, internal>> {
-    +input: std::string = "teapot_n_glass.obj"
-    +output: std::string = "raytracer.bmp"
-    +width: int = 1280
-    +height: int = 720
-    +intersection_algorithm: TriangleIntersectionAlgorithm = Badouel
+package "utility" {
+  class RenderStats <<struct>> {
+    +primary_rays: atomic<uint64_t>
+    +triangle_tests: atomic<uint64_t>
+    +aabb_tests: atomic<uint64_t>
+    +reset(): void
   }
-  note right of Options
-    Interne freie Funktionen:
-    parse_dimension(value: const char*, flag: const char*): int
-    parse_options(argc: int, argv: char**): Options
-    main(argc: int, argv: char**): int
-  end note
 }
 
-Ray *-- Vector3 : origin, direction
-Triangle *-- Vector3 : vertices and normals
-Triangle *-- Material : material
-Triangle ..> Ray : intersect input
-Triangle ..> TriangleIntersectionAlgorithm
-Material *-- Vector3 : diffuse, specular
-World *-- Triangle : triangles_
-World ..> Ray : intersect input
-World ..> Hit : fills closest hit
-World ..> RenderStats : optional counter pointer
-World ..> TriangleIntersectionAlgorithm
-Camera *-- Vector3 : camera vectors
-Camera ..> Ray : creates
-Renderer ..> World
-Renderer ..> Camera
-Renderer ..> RenderStats
-Renderer ..> TriangleIntersectionAlgorithm
-ObjLoader ..> World : returns
-ObjLoader ..> FaceVertex : OBJ face parsing
-BmpWriter ..> Vector3 : pixel buffer
-Options ..> TriangleIntersectionAlgorithm
+note top of Renderer
+  CLI / main orchestriert:
+  OBJ/MTL laden → Kamera erzeugen →
+  rendern → BMP schreiben.
+  --mt wählt Möller–Trumbore,
+  sonst gilt Badouel.
+end note
+
+Ray *-- "2" Vector3 : origin, direction
+Triangle *-- Material
+Triangle ..> TriangleIntersectionAlgorithm : Verfahren
+World *-- "0..*" Triangle : Szene
+World ..> Hit : nächster Treffer
+Renderer ..> Camera : Primärstrahlen
+Renderer ..> World : Primär- und Folgestrahlen
+Renderer ..> RenderStats : Zähler
 
 @enduml

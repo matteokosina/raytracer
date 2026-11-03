@@ -5,15 +5,16 @@
 
 void World::add_triangle(const Triangle& triangle) { triangles_.push_back(triangle); }
 
-bool World::intersect(const Ray& ray, double t_min, double t_max, Hit& hit, RenderStats* stats,
-                      TriangleIntersectionAlgorithm algorithm) const {
+bool World::intersect(const Ray& ray, double t_min, double t_max, Hit& hit,
+                      TriangleIntersectFn intersect_fn, RenderStats* stats) const {
     bool found = false;
     double closest = t_max;
-    // Brute Force: Der obere Grenzwert wird mit jedem Treffer enger.
+    // Brute Force: Der obere Grenzwert wird mit jedem Treffer enger; der Methodenzeiger
+    // bleibt für alle Dreiecke gleich und vermeidet die Algorithmuswahl in dieser Schleife.
     for (std::size_t i = 0; i < triangles_.size(); ++i) {
         if (stats) ++stats->triangle_tests;
         double t = 0.0, u = 0.0, v = 0.0;
-        if (triangles_[i].intersect(ray, t_min, closest, t, u, v, algorithm)) {
+        if ((triangles_[i].*intersect_fn)(ray, t_min, closest, t, u, v)) {
             found = true;
             closest = t;
             hit = {t, u, v, i};

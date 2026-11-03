@@ -15,7 +15,8 @@ struct Options {
     std::string output = "raytracer.bmp";
     int width = 1280;
     int height = 720;
-    TriangleIntersectionAlgorithm intersection_algorithm = TriangleIntersectionAlgorithm::Badouel;
+    // Standardverfahren; --mt ersetzt diesen Zeiger beim Parsen genau einmal.
+    TriangleIntersectFn intersect_fn = &Triangle::intersect_badouel;
 };
 
 int parse_dimension(const char* value, const char* flag) {
@@ -36,8 +37,9 @@ Options parse_options(int argc, char** argv) {
         else if (arg == "-h") options.height = parse_dimension(next("-h"), "-h");
         else if (arg == "-o") options.output = next("-o");
         else if (arg == "-i" || arg == "--input") options.input = next("--input");
+        // Die Auswahl geschieht vor dem Rendern und nicht pro Strahl oder Dreieck.
         else if (arg == "--moeller" || arg == "--mt")
-            options.intersection_algorithm = TriangleIntersectionAlgorithm::MollerTrumbore;
+            options.intersect_fn = &Triangle::intersect_moeller;
         else if (arg == "--help" || arg == "-help") {
             std::cout << "Usage: raytracer [-i scene.obj] [-w pixels] [-h pixels] [-o image.bmp] [--moeller|--mt]\n"
                       << "Default triangle intersection: Badouel\n";
@@ -59,7 +61,7 @@ int main(int argc, char** argv) {
         const Camera camera(world.bounds_min(),world.bounds_max(),static_cast<double>(options.width)/options.height);
         RenderStats stats;
         const auto pixels = Renderer::render(world,camera,options.width,options.height,&stats,
-            options.intersection_algorithm,[](int percent) {
+            options.intersect_fn,[](int percent) {
                 constexpr int bar_width = 30;
                 const int completed = bar_width*percent/100;
                 std::cerr << "\rRendering [" << std::string(completed,'#')
@@ -72,7 +74,7 @@ int main(int argc, char** argv) {
         const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();
         std::cout << "Loaded " << world.triangles().size() << " triangles\n"
                   << "Intersection algorithm: "
-                  << (options.intersection_algorithm == TriangleIntersectionAlgorithm::MollerTrumbore
+                  << (options.intersect_fn == &Triangle::intersect_moeller
                       ? "Moller-Trumbore" : "Badouel") << "\n"
                   << "Rendered " << stats.primary_rays << " rays; triangle tests: " << stats.triangle_tests << "\n"
                   << "Wrote " << options.output << " in " << seconds << " s\n";

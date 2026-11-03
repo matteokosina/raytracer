@@ -1,0 +1,144 @@
+@startuml
+title Vollständiges Klassendiagramm des Raytracers
+
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam nodesep 10
+skinparam ranksep 14
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+
+package "CLI · raytracer.cc" {
+  class Options <<intern>> {
+    +input, output: std::string
+    +width, height: int
+    +intersect_fn: TriangleIntersectFn
+  }
+  note bottom of Options
+    parse_dimension, parse_options, main
+  end note
+}
+
+package "math" {
+  class Vector3 <<struct>> {
+    +x, y, z: double
+    +length_squared(), length(): double
+    +normalized(): Vector3
+    +dot(), cross(), hadamard(): Vector3
+    +operator+, operator-, operator*, operator/
+  }
+}
+
+package "geometry" {
+  class Ray <<struct>> {
+    +origin, direction: Vector3
+    +at(t): Vector3
+  }
+  enum TriangleIntersectionAlgorithm {
+    Badouel
+    MollerTrumbore
+  }
+  class Triangle <<struct>> {
+    +a, b, c: Vector3
+    +material: Material
+    +normal_a, normal_b, normal_c: Vector3
+    +has_vertex_normals: bool
+    +intersect(..., algorithm): bool
+    +intersect_badouel(...): bool
+    +intersect_moeller(...): bool
+    +normal(), shading_normal(u, v): Vector3
+  }
+  class TriangleIntersectFn <<alias>>
+}
+
+package "world" {
+  class Material <<struct>> {
+    +diffuse, specular: Vector3
+    +shininess, opacity, refractive_index: double
+  }
+  class Hit <<struct>> {
+    +t, u, v: double
+    +triangle_index: std::size_t
+  }
+  class World {
+    -triangles_: std::vector<Triangle>
+    +add_triangle(triangle): void
+    +intersect(ray, range, hit, intersect_fn, stats): bool
+    +triangles(): const std::vector<Triangle>&
+    +bounds_min(), bounds_max(): Vector3
+  }
+}
+
+package "view" {
+  class Camera {
+    -origin_, lower_left_, horizontal_, vertical_: Vector3
+    +Camera(bounds_min, bounds_max, aspect_ratio)
+    +ray(u, v): Ray
+  }
+  class Renderer {
+    +ProgressCallback = std::function<void(int)>
+    +render(world, camera, size, stats, intersect_fn, progress): std::vector<Vector3>
+  }
+}
+
+package "utility" {
+  class RenderStats <<struct>> {
+    +primary_rays, triangle_tests, aabb_tests: atomic<uint64_t>
+    +reset(): void
+  }
+  class ObjLoader {
+    +{static} load(path): World
+  }
+  class FaceVertex <<intern>> {
+    +vertex, normal: int
+  }
+  class BmpWriter {
+    +{static} write(path, width, height, pixels): void
+  }
+}
+
+note right of Renderer
+  renderer.cc-Helfer:
+  background, offset_origin, schlick_fresnel,
+  light_visibility, refract, trace
+end note
+
+note bottom of ObjLoader
+  OBJ/MTL-Helfer: Materials, resolve_index,
+  face_vertex, load_materials
+end note
+
+note bottom of BmpWriter
+  BMP-Helfer: put_u16, put_u32, channel
+end note
+
+note top of Options
+  Ablauf: Argumente parsen → Szene laden →
+  Kamera/Renderer → BMP schreiben
+end note
+
+Ray *-- "2" Vector3
+Triangle *-- "3" Vector3
+Triangle *-- Material
+Triangle ..> TriangleIntersectionAlgorithm
+TriangleIntersectFn ..> Triangle
+World *-- "0..*" Triangle
+World ..> Hit
+World ..> RenderStats
+World ..> TriangleIntersectFn
+Camera *-- "4" Vector3
+Renderer ..> Camera
+Renderer ..> World
+Renderer ..> RenderStats
+Renderer ..> TriangleIntersectFn
+ObjLoader ..> FaceVertex
+ObjLoader ..> World
+Options ..> ObjLoader
+Options ..> BmpWriter
+Options ..> TriangleIntersectFn
+
+@enduml

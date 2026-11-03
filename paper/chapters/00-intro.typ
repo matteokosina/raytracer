@@ -29,12 +29,15 @@ berechnet die Beleuchtung. Für den nächsten Schnittpunkt fragt er die
 `Triangle` entweder den Badouel- oder den Möller-Trumbore-Algorithmus
 verwenden. Abschließend schreibt `BmpWriter` das berechnete Bild als BMP.
 
-TODO: Projekt overview + klassendiagramm
-
 Die Trennung erleichtert den Vergleich der Schnittalgorithmen: Sie lassen
 sich über die Kommandozeile via Flags auswählen, während Kamera, Szenenverwaltung
 und Bildausgabe gleich bleiben. Geometrie, Beleuchtung und Dateiverarbeitung
 sind dadurch als eigene Verantwortungsbereiche erkennbar.
+#figure(
+  image("../assets/class-diagram.svg", width: 100%),
+  caption: [Klassendiagramm der zentralen Klassen. Rauten markieren enthaltene Objekte; gestrichelte Pfeile zeigen Nutzungsbeziehungen.],
+)<fig:class-diagram>
+
 
 Für die erste Aufgabe schauen wir uns hierzu zunächst zwei verschiedene Schnittpunktalgorithmen an. Diese sind der Badouel Algorithmus der als Referenzalgorithmus dient und der Möller-Trumbore Algorithmus. Standardmäßig nutzt der hier gebaute Raytracer den Badouel Algorithmus um Schnittpunkte zwischen der Dreiecken und den Strahlen zu berechnen, um den Möller-Trumbore Algorithmus zu nutzen muss die `--moeller` CLI-Flag mitgegeben werden.
 Als Testszene dient die Teapot-Szene die als _.obj_ und _.mtl_ Datei bereitgestellt wurden. @fig:rendered0 und @fig:rendered1 zeigen die vom Raytracer gerenderte Szene mittels Badouel und Möller-Trumbore Algorithmus in einer Auflösung von 3840px x 2160px. Wie erwartet zeigen Sie das gleiche Bild, da ausschlieplich die Berechnung des Schnittpunktes jedoch nicht das Ergebnis unterschiedlich sein sollte.

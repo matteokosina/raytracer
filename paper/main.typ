@@ -13,4 +13,5 @@
 #include "chapters/00-intro.typ"
 #pagebreak()
 #bibliography("references.bib", title: [Literatur und Bildquellen], style: "ieee")
+#include "appendix.typ"
 
