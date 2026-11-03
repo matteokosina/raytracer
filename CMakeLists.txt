@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(raytracer LANGUAGES CXX)
 
-option(ENABLE_PROFILING "Build with gprof instrumentation" OFF)
+option(ENABLE_GPERFTOOLS_PROFILING "Build with Google Perftools CPU profiler support" OFF)
 option(ENABLE_COVERAGE "Build with gcov coverage instrumentation" OFF)
 option(BUILD_TESTING "Build unit tests when GoogleTest is available" ON)
 
@@ -22,9 +22,10 @@ target_compile_options(raytracer_core PRIVATE -Wall -Wextra -Wpedantic)
 add_executable(raytracer raytracer.cc)
 target_link_libraries(raytracer PRIVATE raytracer_core)
 
-if(ENABLE_PROFILING)
-    target_compile_options(raytracer_core PUBLIC -pg)
-    target_link_options(raytracer_core PUBLIC -pg)
+if(ENABLE_GPERFTOOLS_PROFILING)
+    find_library(GPERFTOOLS_PROFILER_LIBRARY profiler REQUIRED)
+    target_compile_options(raytracer_core PUBLIC -g -fno-omit-frame-pointer)
+    target_link_libraries(raytracer PRIVATE ${GPERFTOOLS_PROFILER_LIBRARY})
 endif()
 if(ENABLE_COVERAGE)
     target_compile_options(raytracer_core PUBLIC --coverage)
