@@ -46,7 +46,7 @@ raytracer/
 ├── view/                       # Kamera & Ausführung
 │   ├── camera.h / .cc          # Strahl-Erzeugung (Skalar & AVX Packet Tracing)
 │   └── renderer.h / .cc        # Multithreading / Rendering-Schleife
-├── utility/                    # Mess-Logik & I/O
+├── io/                         # Mess-Logik & I/O
 │   ├── timer.h                 # std::chrono Messung
 │   ├── stats.h / .cc           # Atomic-Zähler für Schnittpunkttests
 │   ├── obj_loader.h / .cc      # Wavefront .obj Import
@@ -79,9 +79,9 @@ Das Hauptprogramm `raytracer` akzeptiert folgende Steuerungs-Flags:
 ### Phase 1: Foundation & Baseline (Aufgabe 1 - Teil 1)
 - [ ] Setup `CMakeLists.txt` mit C++20, GoogleTest-Integration und Profiling-Optionen (`ENABLE_PROFILING` für `gprof`, `ENABLE_COVERAGE` für `gcov`).
 - [ ] Implementierung `math/vector3.h` (mit korrigiertem Kreuzprodukt!).
-- [ ] Implementierung `utility/stats.h` mit atomic Zählern (`primary_rays`, `triangle_tests`, `aabb_tests`).
+- [ ] Implementierung `io/stats.h` mit atomic Zählern (`primary_rays`, `triangle_tests`, `aabb_tests`).
 - [ ] Implementierung `geometry/triangle.cc` mit **Badouel-Schnittpunkttest** (Projektion auf 2D, $u, v$ Parameter).
-- [ ] Implementierung `world/world.cc` (Brute-Force über alle Dreiecke) und `utility/bmp_writer.cc`.
+- [ ] Implementierung `world/world.cc` (Brute-Force über alle Dreiecke) und `io/bmp_writer.cc`.
 - [ ] GoogleTest `geometry_test.cc` zur Validierung des Badouel-Tests gegen bekannte Geometrie.
 
 ### Phase 2: Möller-Trumbore Optimierung (Aufgabe 1 - Teil 2)
@@ -106,4 +106,3 @@ Das Hauptprogramm `raytracer` akzeptiert folgende Steuerungs-Flags:
 - [ ] Implementierung parallelisierter Slab-Test & Möller-Trumbore-Test mit **AVX2-Intrinsics** (`<immintrin.h>`) oder GCC-Vektortypen.
 - [ ] Einbau CLI-Flag `--avx` in `raytracer.cc`.
 - [ ] Benchmark: Skalare Ausführung vs. AVX Packet Tracing messen.
-

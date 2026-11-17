@@ -14,8 +14,8 @@ add_library(raytracer_core
     geometry/kdtree.cc
     geometry/triangle.cc
     world/world.cc
-    utility/obj_loader.cc
-    utility/bmp_writer.cc
+    io/obj_loader.cc
+    io/bmp_writer.cc
     view/camera.cc
     view/renderer.cc)
 target_include_directories(raytracer_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

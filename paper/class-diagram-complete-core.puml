@@ -96,7 +96,7 @@ package "view" {
   }
 }
 
-package "utility" {
+package "io" {
   class RenderStats <<struct>> {
     +primary_rays: std::atomic<std::uint64_t> = 0
     +triangle_tests: std::atomic<std::uint64_t> = 0

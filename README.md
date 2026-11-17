@@ -63,5 +63,5 @@ invalidates the tree; rebuild it after mutations to enable acceleration again.
 
 `math` contains vector operations; `geometry` defines rays and triangle
 intersections; `world` owns scene triangles and closest-hit queries; `view`
-creates camera rays and renders pixels; `utility` handles OBJ/MTL input, BMP
+creates camera rays and renders pixels; `io` handles OBJ/MTL input, BMP
 output, and counters. All scene and image data use value semantics.

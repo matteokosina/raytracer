@@ -1,4 +1,4 @@
-#include "utility/bmp_writer.h"
+#include "io/bmp_writer.h"
 
 #include <algorithm>
 #include <cmath>

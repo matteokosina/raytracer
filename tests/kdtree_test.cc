@@ -1,5 +1,5 @@
 #include "geometry/kdtree.h"
-#include "utility/obj_loader.h"
+#include "io/obj_loader.h"
 #include "view/renderer.h"
 
 #include <gtest/gtest.h>

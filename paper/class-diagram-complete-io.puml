@@ -28,7 +28,7 @@ package "CLI · raytracer.cc" {
   end note
 }
 
-package "utility" {
+package "io" {
   class ObjLoader {
     +{static} load(path: std::filesystem::path): World
   }

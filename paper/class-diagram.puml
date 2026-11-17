@@ -82,7 +82,7 @@ package "view" {
   }
 }
 
-package "utility" {
+package "io" {
   class RenderStats <<struct>> {
     +primary_rays: atomic<uint64_t>
     +triangle_tests: atomic<uint64_t>

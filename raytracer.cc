@@ -1,5 +1,5 @@
-#include "utility/bmp_writer.h"
-#include "utility/obj_loader.h"
+#include "io/bmp_writer.h"
+#include "io/obj_loader.h"
 #include "view/renderer.h"
 
 #include <chrono>

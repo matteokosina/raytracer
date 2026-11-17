@@ -1,4 +1,4 @@
-#include "utility/obj_loader.h"
+#include "io/obj_loader.h"
 
 #include <fstream>
 #include <map>

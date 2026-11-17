@@ -85,7 +85,7 @@ package "view" {
   }
 }
 
-package "utility" {
+package "io" {
   class RenderStats <<struct>> {
     +primary_rays, triangle_tests, aabb_tests: atomic<uint64_t>
     +reset(): void

@@ -2,7 +2,7 @@
 
 #include "geometry/aabb.h"
 #include "geometry/hit.h"
-#include "utility/stats.h"
+#include "io/stats.h"
 
 #include <memory>
 #include <vector>
