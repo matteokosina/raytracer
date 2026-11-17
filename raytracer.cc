@@ -15,6 +15,7 @@ struct Options {
     std::string output = "raytracer.bmp";
     int width = 1280;
     int height = 720;
+    bool kdtree = false;
     // Standardverfahren; --mt ersetzt diesen Zeiger beim Parsen genau einmal.
     TriangleIntersectFn intersect_fn = &Triangle::intersect_badouel;
 };
@@ -37,12 +38,13 @@ Options parse_options(int argc, char** argv) {
         else if (arg == "-h") options.height = parse_dimension(next("-h"), "-h");
         else if (arg == "-o") options.output = next("-o");
         else if (arg == "-i" || arg == "--input") options.input = next("--input");
+        else if (arg == "--kdtree") options.kdtree = true;
         // Die Auswahl geschieht vor dem Rendern und nicht pro Strahl oder Dreieck.
         else if (arg == "--moeller" || arg == "--mt")
             options.intersect_fn = &Triangle::intersect_moeller;
         else if (arg == "--help" || arg == "-help") {
-            std::cout << "Usage: raytracer [-i scene.obj] [-w pixels] [-h pixels] [-o image.bmp] [--moeller|--mt]\n"
-                      << "Default triangle intersection: Badouel\n";
+            std::cout << "Usage: raytracer [-i scene.obj] [-w pixels] [-h pixels] [-o image.bmp] [--moeller|--mt] [--kdtree]\n"
+                      << "Default: Badouel triangle intersection with brute-force traversal\n";
             std::exit(0);
         } else throw std::runtime_error("Unknown option: "+arg);
     }
@@ -57,7 +59,8 @@ int main(int argc, char** argv) {
         // Die Messung umfasst Laden, Rendering und Schreiben der BMP-Datei.
         const auto start = std::chrono::steady_clock::now();
         // Die OBJ-Szene liefert Geometrie, Materialien und die Kameragrenzen.
-        const World world = ObjLoader::load(options.input);
+        World world = ObjLoader::load(options.input);
+        if (options.kdtree) world.build_kdtree();
         const Camera camera(world.bounds_min(),world.bounds_max(),static_cast<double>(options.width)/options.height);
         RenderStats stats;
         const auto pixels = Renderer::render(world,camera,options.width,options.height,&stats,
@@ -76,7 +79,9 @@ int main(int argc, char** argv) {
                   << "Intersection algorithm: "
                   << (options.intersect_fn == &Triangle::intersect_moeller
                       ? "Moller-Trumbore" : "Badouel") << "\n"
-                  << "Rendered " << stats.primary_rays << " rays; triangle tests: " << stats.triangle_tests << "\n"
+                  << "Traversal: " << (world.kdtree_enabled() ? "k-d tree" : "brute force") << "\n"
+                  << "Rendered " << stats.primary_rays << " rays; triangle tests: " << stats.triangle_tests
+                  << "; AABB tests: " << stats.aabb_tests << "\n"
                   << "Wrote " << options.output << " in " << seconds << " s\n";
     } catch (const std::exception& error) {
         std::cerr << "raytracer: " << error.what() << "\n";

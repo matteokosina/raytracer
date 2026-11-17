@@ -10,6 +10,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(raytracer_core
+    geometry/aabb.cc
+    geometry/kdtree.cc
     geometry/triangle.cc
     world/world.cc
     utility/obj_loader.cc

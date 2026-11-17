@@ -26,6 +26,7 @@ double schlick_fresnel(double cosine, double refractive_index) {
     return f0+(1.0-f0)*std::pow(1.0-std::clamp(cosine,0.0,1.0),5.0);
 }
 
+template<WorldIntersectFn Traversal>
 Vector3 light_visibility(const World& world, const Vector3& point,
                         const Vector3& geometric_normal, const Vector3& light,
                         TriangleIntersectFn intersect_fn, RenderStats* stats) {
@@ -36,7 +37,7 @@ Vector3 light_visibility(const World& world, const Vector3& point,
     double t_min = 1e-6;
     for (int layer=0;layer<16;++layer) {
         Hit blocker;
-        if (!world.intersect(shadow_ray,t_min,1e30,blocker,intersect_fn,stats)) break;
+        if (!(world.*Traversal)(shadow_ray,t_min,1e30,blocker,intersect_fn,stats)) break;
         const double opacity = std::clamp(world.triangles()[blocker.triangle_index].material.opacity,0.0,1.0);
         visibility = visibility*(1.0-opacity);
         if (visibility.x<0.01 && visibility.y<0.01 && visibility.z<0.01) return {};
@@ -55,12 +56,13 @@ bool refract(const Vector3& incoming, const Vector3& normal, double eta,
     return true;
 }
 
+template<WorldIntersectFn Traversal>
 Vector3 trace(const World& world, const Ray& ray, int depth, RenderStats* stats,
               TriangleIntersectFn intersect_fn) {
     Hit hit;
     // Ein Strahl ohne Treffer trägt nur die Hintergrundfarbe zum Pixel bei.
     // intersect_fn wird unverändert durch Reflexions- und Brechungsstrahlen weitergereicht.
-    if (!world.intersect(ray,1e-6,1e30,hit,intersect_fn,stats)) return background(ray);
+    if (!(world.*Traversal)(ray,1e-6,1e30,hit,intersect_fn,stats)) return background(ray);
 
     const Triangle& triangle = world.triangles()[hit.triangle_index];
     const Material& material = triangle.material;
@@ -73,7 +75,7 @@ Vector3 trace(const World& world, const Ray& ray, int depth, RenderStats* stats,
     if (normal.dot(ray.direction)>0.0) normal = -normal;
 
     const Vector3 light = Vector3{-0.5,0.8,0.6}.normalized();
-    const Vector3 visibility = light_visibility(world,point,geometric_normal,light,intersect_fn,stats);
+    const Vector3 visibility = light_visibility<Traversal>(world,point,geometric_normal,light,intersect_fn,stats);
     const Vector3 view = (-ray.direction).normalized();
     const double diffuse = std::max(0.0,normal.dot(light));
     const Vector3 half_vector = (light+view).normalized();
@@ -106,7 +108,7 @@ Vector3 trace(const World& world, const Ray& ray, int depth, RenderStats* stats,
     const Vector3 reflected = (incoming-normal*(2.0*incoming.dot(normal))).normalized();
     const Ray reflection_ray{offset_origin(point,geometric_normal,reflected),reflected};
     // Jeder Folgestrahl fragt dieselbe Szene mit demselben Schnittverfahren ab.
-    const Vector3 reflected_color = trace(world,reflection_ray,depth+1,stats,intersect_fn);
+    const Vector3 reflected_color = trace<Traversal>(world,reflection_ray,depth+1,stats,intersect_fn);
     Vector3 color = local_color*local_weight + reflected_color*reflection_weight;
 
     if (transmission_weight > 0.001) {
@@ -114,29 +116,29 @@ Vector3 trace(const World& world, const Ray& ray, int depth, RenderStats* stats,
         Vector3 transmitted;
         if (refract(incoming,interface_normal,relative_eta,transmitted)) {
             const Ray transmission_ray{offset_origin(point,geometric_normal,transmitted),transmitted};
-            color = color+trace(world,transmission_ray,depth+1,stats,intersect_fn)*transmission_weight;
+            color = color+trace<Traversal>(world,transmission_ray,depth+1,stats,intersect_fn)*transmission_weight;
         } else {
             color = color+reflected_color*transmission_weight;
         }
     }
     return color;
 }
-}
 
-std::vector<Vector3> Renderer::render(const World& world, const Camera& camera,
-                                      int width, int height, RenderStats* stats,
-                                      TriangleIntersectFn intersect_fn,
-                                      ProgressCallback progress) {
+template<WorldIntersectFn Traversal>
+std::vector<Vector3> render_impl(const World& world, const Camera& camera,
+                                 int width, int height, RenderStats* stats,
+                                 TriangleIntersectFn intersect_fn,
+                                 const Renderer::ProgressCallback& progress) {
     // Der Algorithmus steht vor dem Eintritt in die Pixel- und Dreiecksschleifen fest.
     std::vector<Vector3> pixels(static_cast<std::size_t>(width)*height);
     int last_percent = -1;
     // Pro Pixel wird ein Strahl durch die Pixelmitte verfolgt.
     for (int y=0;y<height;++y) {
         for (int x=0;x<width;++x) {
-            if (stats) ++stats->primary_rays;
+            if (stats) stats->primary_rays.fetch_add(1, std::memory_order_relaxed);
             const double u = (x+0.5)/width;
             const double v = 1.0-(y+0.5)/height;
-            pixels[static_cast<std::size_t>(y)*width+x] = trace(world,camera.ray(u,v),0,stats,intersect_fn);
+            pixels[static_cast<std::size_t>(y)*width+x] = trace<Traversal>(world,camera.ray(u,v),0,stats,intersect_fn);
         }
         const int percent = (100*(y+1))/height;
         if (progress && percent != last_percent) {
@@ -145,4 +147,14 @@ std::vector<Vector3> Renderer::render(const World& world, const Camera& camera,
         }
     }
     return pixels;
+}
+}
+
+std::vector<Vector3> Renderer::render(const World& world, const Camera& camera,
+                                      int width, int height, RenderStats* stats,
+                                      TriangleIntersectFn intersect_fn,
+                                      ProgressCallback progress) {
+    if (world.kdtree_enabled())
+        return render_impl<&World::intersect_kdtree>(world,camera,width,height,stats,intersect_fn,progress);
+    return render_impl<&World::intersect_bruteforce>(world,camera,width,height,stats,intersect_fn,progress);
 }
